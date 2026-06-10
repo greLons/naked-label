@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>naked label.beauty — ingredient analysis</title>
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F8F5F0;
+    --sand:  #EDE8DF;
+    --stone: #C8C0B4;
+    --ink:   #2C2A27;
+    --muted: #7A7570;
+    --green-bg: #EAF3DE;
+    --green-tx: #3B6D11;
+    --amber-bg: #FAEEDA;
+    --amber-tx: #854F0B;
+    --red-bg:   #FCEBEB;
+    --red-tx:   #A32D2D;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+  }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2rem;
+    background: #fff;
+    border-bottom: 1px solid var(--sand);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-size: 1.1rem; letter-spacing: 0.04em; color: var(--ink); text-decoration: none; }
+  .logo span { color: var(--muted); font-weight: 400; }
+  .nav-actions { display: flex; gap: 0.75rem; align-items: center; }
+  .btn-ghost {
+    background: none; border: 1px solid var(--stone);
+    padding: 0.45rem 1.1rem; border-radius: var(--radius-sm);
+    font-size: 0.85rem; cursor: pointer; color: var(--ink);
+    font-family: inherit; transition: background 0.15s;
+  }
+  .btn-ghost:hover { background: var(--sand); }
+  .btn-primary {
+    background: var(--ink); color: #fff; border: none;
+    padding: 0.45rem 1.1rem; border-radius: var(--radius-sm);
+    font-size: 0.85rem; cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 5rem 1.5rem 3rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 400;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  .hero p { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; }
+
+  /* CARD */
+  .card {
+    background: #fff;
+    border: 1px solid var(--sand);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    max-width: 640px;
+    margin: 0 auto 1.5rem;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--sand);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .tab {
+    flex: 1; padding: 0.65rem 0.5rem;
+    background: var(--sand); border: none; cursor: pointer;
+    font-family: inherit; font-size: 0.85rem; color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+    border-right: 1px solid var(--stone);
+  }
+  .tab:last-child { border-right: none; }
+  .tab.active { background: #fff; color: var(--ink); font-weight: 500; }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 1.5px dashed var(--stone);
+    border-radius: var(--radius-md);
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--ink); background: var(--sand); }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+  }
+  .upload-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+
+  /* DIVIDER */
+  .or-divider {
+    display: flex; align-items: center; gap: 0.75rem;
+    color: var(--stone); font-size: 0.8rem; margin: 0.75rem 0;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--sand);
+  }
+
+  /* INPUTS */
+  input[type=text], input[type=number], input[type=email], input[type=password], textarea, select {
+    width: 100%; border: 1px solid var(--sand);
+    border-radius: var(--radius-sm); padding: 0.65rem 0.85rem;
+    font-family: inherit; font-size: 0.9rem; color: var(--ink);
+    background: #fff; outline: none; transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--ink); }
+  textarea { resize: vertical; min-height: 120px; }
+
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+
+  .form-group { margin-bottom: 1rem; }
+
+  /* SKIN ZONES */
+  .zone-grid {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+  }
+  .zone-pill {
+    padding: 0.4rem 0.9rem; border: 1px solid var(--sand);
+    border-radius: 20px; font-size: 0.82rem; cursor: pointer;
+    background: var(--sand); color: var(--muted);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .zone-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* CAMERA */
+  #camera-section { display: none; }
+  #camera-section.active { display: block; }
+  #video-feed {
+    width: 100%; border-radius: var(--radius-md);
+    border: 1px solid var(--sand); margin-bottom: 0.75rem;
+    background: #000;
+  }
+
+  /* ANALYZE BUTTON */
+  .btn-analyze {
+    width: 100%; background: var(--ink); color: #fff; border: none;
+    padding: 0.85rem; border-radius: var(--radius-sm);
+    font-size: 0.95rem; cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s; margin-top: 0.5rem;
+  }
+  .btn-analyze:hover { opacity: 0.85; }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* SPINNER */
+  .spinner-wrap { text-align: center; padding: 3rem 1rem; }
+  .spinner {
+    width: 32px; height: 32px; border: 2px solid var(--sand);
+    border-top-color: var(--ink); border-radius: 50%;
+    animation: spin 0.75s linear infinite; margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULTS */
+  #results-page { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  .result-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+  .result-header h2 { font-size: 1.4rem; font-weight: 400; }
+  .result-header p { color: var(--muted); font-size: 0.85rem; }
+  .score-ring {
+    min-width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 500;
+    border: 3px solid;
+    flex-shrink: 0;
+  }
+
+  .ingredients-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .ingredient-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+    border: 1px solid;
+  }
+  .ingredient-item.good    { background: var(--green-bg); border-color: #C0DD97; }
+  .ingredient-item.neutral { background: var(--amber-bg); border-color: #FAC775; }
+  .ingredient-item.bad     { background: var(--red-bg);   border-color: #F7C1C1; }
+  .ingredient-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+  }
+  .ingredient-item.good    .ingredient-dot { background: var(--green-tx); }
+  .ingredient-item.neutral .ingredient-dot { background: var(--amber-tx); }
+  .ingredient-item.bad     .ingredient-dot { background: var(--red-tx); }
+  .ingredient-name { font-size: 0.9rem; font-weight: 500; }
+  .ingredient-desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+  .section-label {
+    font-size: 0.75rem; letter-spacing: 0.08em;
+    color: var(--muted); text-transform: uppercase;
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  /* SUMMARY PILLS */
+  .summary-pills { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .pill {
+    padding: 0.35rem 0.85rem; border-radius: 20px;
+    font-size: 0.82rem; font-weight: 500;
+  }
+  .pill.good    { background: var(--green-bg); color: var(--green-tx); }
+  .pill.neutral { background: var(--amber-bg); color: var(--amber-tx); }
+  .pill.bad     { background: var(--red-bg);   color: var(--red-tx); }
+
+  /* BACK + SAVE */
+  .result-actions { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .btn-back {
+    background: none; border: 1px solid var(--stone);
+    padding: 0.5rem 1rem; border-radius: var(--radius-sm);
+    font-size: 0.85rem; cursor: pointer; color: var(--ink); font-family: inherit;
+  }
+  .btn-save {
+    background: var(--ink); color: #fff; border: none;
+    padding: 0.5rem 1.1rem; border-radius: var(--radius-sm);
+    font-size: 0.85rem; cursor: pointer; font-family: inherit;
+  }
+  .btn-save:hover { opacity: 0.85; }
+
+  /* AUTH MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(44,42,39,0.45); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--radius-lg);
+    padding: 2rem; width: min(420px, 92vw);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 1.3rem; font-weight: 400; margin-bottom: 0.25rem; }
+  .modal p  { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .modal-close {
+    float: right; background: none; border: none;
+    font-size: 1.3rem; cursor: pointer; color: var(--muted); margin-top: -0.25rem;
+  }
+  .modal-toggle {
+    text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--muted);
+  }
+  .modal-toggle button {
+    background: none; border: none; cursor: pointer;
+    color: var(--ink); text-decoration: underline;
+    font-family: inherit; font-size: 0.85rem;
+  }
+
+  /* DASHBOARD */
+  #dashboard-page { max-width: 680px; margin: 0 auto; padding: 2rem 1rem; }
+  #dashboard-page h2 { font-size: 1.5rem; font-weight: 400; margin-bottom: 0.5rem; }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .saved-grid { display: grid; gap: 0.75rem; margin-top: 1.25rem; }
+  .saved-card {
+    background: #fff; border: 1px solid var(--sand);
+    border-radius: var(--radius-md); padding: 1rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .saved-card:hover { border-color: var(--stone); }
+  .saved-card .name { font-size: 0.9rem; font-weight: 500; }
+  .saved-card .meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+  .saved-card .remove {
+    background: none; border: none; color: var(--stone);
+    cursor: pointer; font-size: 1rem; padding: 0.25rem;
+  }
+  .saved-card .remove:hover { color: var(--red-tx); }
+
+  .error-box {
+    background: var(--red-bg); border: 1px solid #F7C1C1;
+    border-radius: var(--radius-sm); padding: 1rem;
+    font-size: 0.88rem; color: var(--red-tx); margin-top: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    nav { padding: 1rem; }
+    .hero { padding: 3rem 1rem 2rem; }
+    .card { padding: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#" onclick="showPage('home')">naked label<span>.beauty</span></a>
+  <div class="nav-actions" id="nav-actions">
+    <button class="btn-ghost" onclick="openModal('login')">Sign in</button>
+    <button class="btn-primary" onclick="openModal('signup')">Sign up</button>
+  </div>
+</nav>
+
+<!-- ══════════════ HOME PAGE ══════════════ -->
+<div id="home-page" class="page active">
+  <div class="hero">
+    <h1>Know exactly what goes on your skin</h1>
+    <p>Scan a barcode or paste an ingredient list — get a clear, honest breakdown of every ingredient.</p>
+  </div>
+
+  <div class="card">
+    <!-- INPUT TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('barcode')">📷 Barcode</button>
+      <button class="tab" onclick="switchTab('paste')">📋 Paste ingredients</button>
+    </div>
+
+    <!-- BARCODE TAB -->
+    <div id="tab-barcode">
+
+      <!-- SUB-TABS: camera / upload / number -->
+      <div class="tabs" style="margin-bottom:1rem;">
+        <button class="tab active" id="sub-camera-btn" onclick="switchSubTab('camera')">Camera</button>
+        <button class="tab" id="sub-upload-btn" onclick="switchSubTab('upload')">Upload photo</button>
+        <button class="tab" id="sub-number-btn" onclick="switchSubTab('number')">Enter number</button>
+      </div>
+
+      <!-- Camera sub-tab -->
+      <div id="sub-camera" class="sub-tab">
+        <div id="camera-section">
+          <video id="video-feed" autoplay playsinline muted></video>
+          <div id="camera-status" style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;"></div>
+          <button class="btn-ghost" onclick="stopCamera()" style="width:100%;margin-bottom:0.75rem;">Stop camera</button>
+        </div>
+        <button class="btn-ghost" id="start-camera-btn" onclick="startCamera()" style="width:100%;margin-bottom:0.75rem;">
+          📷 Open camera to scan barcode
+        </button>
+        <div id="barcode-result-camera" style="display:none;" class="form-group">
+          <label>Detected barcode</label>
+          <input type="text" id="barcode-from-camera" readonly />
+        </div>
+      </div>
+
+      <!-- Upload sub-tab -->
+      <div id="sub-upload" class="sub-tab" style="display:none;">
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" accept="image/*" onchange="handleBarcodeImage(event)" />
+          <span class="icon">🖼️</span>
+          <div>Upload a barcode photo</div>
+          <div style="font-size:0.78rem;margin-top:0.25rem;">JPG, PNG</div>
+        </div>
+        <div id="barcode-result-upload" style="display:none;" class="form-group">
+          <label>Detected barcode</label>
+          <input type="text" id="barcode-from-upload" readonly />
+        </div>
+      </div>
+
+      <!-- Number sub-tab -->
+      <div id="sub-number" class="sub-tab" style="display:none;">
+        <div class="form-group">
+          <label>Barcode number</label>
+          <input type="text" id="barcode-manual" placeholder="e.g. 5901234123457" inputmode="numeric" />
+        </div>
+      </div>
+
+    </div><!-- /tab-barcode -->
+
+    <!-- PASTE TAB -->
+    <div id="tab-paste" style="display:none;">
+      <div class="form-group">
+        <label>Ingredient list</label>
+        <textarea id="ingredients-text" placeholder="Paste the full ingredients list from the packaging, e.g. Water, Glycerin, Niacinamide, Retinol..."></textarea>
+      </div>
+    </div>
+
+    <!-- SKIN ZONE -->
+    <div style="margin-bottom:1rem;">
+      <label style="margin-bottom:0.5rem;">Skin zone</label>
+      <div class="zone-grid">
+        <button class="zone-pill active" onclick="selectZone(this)">Face</button>
+        <button class="zone-pill" onclick="selectZone(this)">Body</button>
+        <button class="zone-pill" onclick="selectZone(this)">Hair</button>
+        <button class="zone-pill" onclick="selectZone(this)">Teeth</button>
+        <button class="zone-pill" onclick="selectZone(this)">Nails</button>
+      </div>
+    </div>
+
+    <div id="analyze-error" style="display:none;" class="error-box"></div>
+
+    <button class="btn-analyze" onclick="runAnalysis()">Find &amp; Analyse</button>
+  </div>
+</div><!-- /home-page -->
+
+<!-- ══════════════ LOADING PAGE ══════════════ -->
+<div id="loading-page" class="page">
+  <div class="spinner-wrap" style="margin-top:6rem;">
+    <div class="spinner"></div>
+    <p style="color:var(--muted);font-size:0.9rem;">Analysing ingredients…</p>
+  </div>
+</div>
+
+<!-- ══════════════ RESULTS PAGE ══════════════ -->
+<div id="results-page" class="page">
+  <div style="max-width:640px;margin:2rem auto;padding:0 1rem;">
+    <div class="result-actions">
+      <button class="btn-back" onclick="showPage('home')">← New analysis</button>
+      <button class="btn-save" id="save-btn" onclick="saveResult()">Save to favourites</button>
+    </div>
+
+    <div class="result-header">
+      <div class="score-ring" id="score-ring">—</div>
+      <div>
+        <h2 id="result-product-name">Analysis result</h2>
+        <p id="result-zone-label"></p>
+      </div>
+    </div>
+
+    <div class="summary-pills" id="summary-pills"></div>
+
+    <p class="section-label">Beneficial</p>
+    <ul class="ingredients-list" id="list-good"></ul>
+
+    <p class="section-label">Neutral</p>
+    <ul class="ingredients-list" id="list-neutral"></ul>
+
+    <p class="section-label">Use with caution</p>
+    <ul class="ingredients-list" id="list-bad"></ul>
+
+    <div id="result-summary-box" style="margin-top:1.5rem;padding:1rem;background:var(--sand);border-radius:var(--radius-md);font-size:0.88rem;color:var(--muted);line-height:1.7;"></div>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD PAGE ══════════════ -->
+<div id="dashboard-page" class="page">
+  <div style="max-width:680px;margin:0 auto;padding:2rem 1rem;">
+    <h2>Your saved products</h2>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:1.25rem;">Products you've bookmarked for quick reference.</p>
+    <button class="btn-primary" onclick="showPage('home')" style="margin-bottom:1.5rem;">+ New analysis</button>
+    <div id="saved-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════ AUTH MODAL ══════════════ -->
+<div class="modal-overlay" id="auth-modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2 id="modal-title">Sign in</h2>
+    <p id="modal-sub">Welcome back</p>
+
+    <div id="signup-name-row" class="form-group" style="display:none;">
+      <label>Name</label>
+      <input type="text" id="auth-name" placeholder="Your name" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" />
+    </div>
+    <div id="auth-error" class="error-box" style="display:none;margin-bottom:0.75rem;"></div>
+    <button class="btn-analyze" onclick="submitAuth()">Continue</button>
+
+    <div class="modal-toggle">
+      <span id="modal-toggle-text">Don't have an account?</span>
+      <button onclick="toggleAuthMode()">Sign up</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentUser = null;
+let currentTab = 'barcode';
+let currentSubTab = 'camera';
+let selectedZone = 'Face';
+let lastResult = null;
+let authMode = 'login';
+let codeReader = null;
+let cameraStream = null;
+
+// Load user from localStorage
+const storedUser = localStorage.getItem('nlb_user');
+if (storedUser) { currentUser = JSON.parse(storedUser); updateNavForUser(); }
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name + '-page').classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  stopCamera();
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tabs:first-of-type .tab').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && tab==='barcode') || (i===1 && tab==='paste'));
+  });
+  document.getElementById('tab-barcode').style.display = tab==='barcode' ? '' : 'none';
+  document.getElementById('tab-paste').style.display   = tab==='paste'   ? '' : 'none';
+  stopCamera();
+}
+
+function switchSubTab(sub) {
+  currentSubTab = sub;
+  ['camera','upload','number'].forEach(s => {
+    document.getElementById('sub-' + s).style.display = s===sub ? '' : 'none';
+    document.getElementById('sub-' + s + '-btn').classList.toggle('active', s===sub);
+  });
+  if (sub !== 'camera') stopCamera();
+}
+
+// ══════════════════════════════════════════
+// ZONE PILLS
+// ══════════════════════════════════════════
+function selectZone(el) {
+  document.querySelectorAll('.zone-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  selectedZone = el.textContent.trim();
+}
+
+// ══════════════════════════════════════════
+// CAMERA BARCODE
+// ══════════════════════════════════════════
+async function startCamera() {
+  document.getElementById('start-camera-btn').style.display = 'none';
+  const section = document.getElementById('camera-section');
+  section.classList.add('active');
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('video-feed');
+    video.srcObject = cameraStream;
+
+    if (typeof ZXing !== 'undefined') {
+      const hints = new Map();
+      codeReader = new ZXing.BrowserMultiFormatReader(hints);
+      codeReader.decodeFromVideoDevice(null, 'video-feed', (result, err) => {
+        if (result) {
+          document.getElementById('camera-status').textContent = '✓ Barcode detected: ' + result.getText();
+          const el = document.getElementById('barcode-from-camera');
+          el.value = result.getText();
+          document.getElementById('barcode-result-camera').style.display = '';
+          stopCamera();
+        }
+      });
+    } else {
+      document.getElementById('camera-status').textContent = 'Camera active — hold barcode up to the lens. (Auto-detect not loaded, enter number manually.)';
+    }
+  } catch(e) {
+    section.classList.remove('active');
+    document.getElementById('start-camera-btn').style.display = '';
+    showError('analyze-error', 'Camera access denied. Please allow camera in browser settings.');
+  }
+}
+
+function stopCamera() {
+  if (codeReader) { try { codeReader.reset(); } catch(e){} codeReader = null; }
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  const section = document.getElementById('camera-section');
+  if (section) { section.classList.remove('active'); }
+  const btn = document.getElementById('start-camera-btn');
+  if (btn) btn.style.display = '';
+}
+
+// ══════════════════════════════════════════
+// UPLOAD BARCODE IMAGE
+// ══════════════════════════════════════════
+async function handleBarcodeImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (typeof ZXing === 'undefined') {
+    showError('analyze-error', 'Barcode library not loaded. Please enter the number manually.');
+    return;
+  }
+
+  try {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    await new Promise(res => img.onload = res);
+
+    const reader = new ZXing.BrowserMultiFormatReader();
+    const result = await reader.decodeFromImageElement(img);
+    document.getElementById('barcode-from-upload').value = result.getText();
+    document.getElementById('barcode-result-upload').style.display = '';
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    showError('analyze-error', 'Could not detect a barcode in this image. Try the manual number tab.');
+  }
+}
+
+// ══════════════════════════════════════════
+// GET INPUT FOR ANALYSIS
+// ══════════════════════════════════════════
+function getInputText() {
+  if (currentTab === 'paste') {
+    return document.getElementById('ingredients-text').value.trim();
+  }
+  // barcode tab
+  if (currentSubTab === 'camera') {
+    const v = document.getElementById('barcode-from-camera').value.trim();
+    return v ? 'Barcode number: ' + v : '';
+  }
+  if (currentSubTab === 'upload') {
+    const v = document.getElementById('barcode-from-upload').value.trim();
+    return v ? 'Barcode number: ' + v : '';
+  }
+  if (currentSubTab === 'number') {
+    const v = document.getElementById('barcode-manual').value.trim();
+    return v ? 'Barcode number: ' + v : '';
+  }
+  return '';
+}
+
+// ══════════════════════════════════════════
+// ANALYSIS
+// ══════════════════════════════════════════
+async function runAnalysis() {
+  hideError('analyze-error');
+  const input = getInputText();
+  if (!input) {
+    showError('analyze-error', 'Please add a barcode number or paste an ingredient list first.');
+    return;
+  }
+
+  const isBarcodeMode = input.startsWith('Barcode number:');
+  const zone = selectedZone;
+
+  const prompt = isBarcodeMode
+    ? buildBarcodePrompt(input, zone)
+    : buildIngredientsPrompt(input, zone);
+
+  showPage('loading');
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'API error');
+
+    const parsed = parseAIResponse(data.text);
+    lastResult = { ...parsed, zone, input, timestamp: Date.now() };
+    renderResults(lastResult);
+    showPage('results');
+  } catch(e) {
+    showPage('home');
+    showError('analyze-error', 'Analysis failed: ' + e.message + '. Check your API key configuration.');
+  }
+}
+
+function buildBarcodePrompt(input, zone) {
+  return `You are a cosmetic ingredient safety expert. 
+A user scanned a product with ${input}.
+Skin zone: ${zone}.
+
+If you know or can reasonably identify the product by this barcode, state its name. Otherwise say "Unknown product".
+
+Then analyse what would typically be found in a ${zone.toLowerCase()} product and provide a plausible example analysis.
+
+Respond ONLY in this exact JSON format, no markdown, no extra text:
+{
+  "productName": "Product name or Unknown product",
+  "score": 75,
+  "scoreLabel": "Good",
+  "good": [
+    {"name": "Ingredient", "desc": "Short benefit description"}
+  ],
+  "neutral": [
+    {"name": "Ingredient", "desc": "Short neutral note"}
+  ],
+  "bad": [
+    {"name": "Ingredient", "desc": "Short caution note"}
+  ],
+  "summary": "2-3 sentence overall assessment for ${zone} skin."
+}`;
+}
+
+function buildIngredientsPrompt(input, zone) {
+  return `You are a cosmetic ingredient safety expert. Analyse the following ingredient list for ${zone} application.
+
+Ingredients: ${input}
+
+Classify EVERY ingredient as beneficial, neutral, or problematic for ${zone} skin.
+
+Respond ONLY in this exact JSON format, no markdown, no extra text:
+{
+  "productName": "Ingredient analysis",
+  "score": 72,
+  "scoreLabel": "Good",
+  "good": [
+    {"name": "Ingredient", "desc": "Short benefit description"}
+  ],
+  "neutral": [
+    {"name": "Ingredient", "desc": "Short neutral note"}
+  ],
+  "bad": [
+    {"name": "Ingredient", "desc": "Short caution note"}
+  ],
+  "summary": "2-3 sentence overall assessment."
+}`;
+}
+
+// ══════════════════════════════════════════
+// PARSE AI RESPONSE
+// ══════════════════════════════════════════
+function parseAIResponse(text) {
+  // Strip markdown fences if present
+  const clean = text.replace(/```json|```/g, '').trim();
+  // Find JSON object
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Unexpected response format from AI');
+  return JSON.parse(match[0]);
+}
+
+// ══════════════════════════════════════════
+// RENDER RESULTS
+// ══════════════════════════════════════════
+function renderResults(r) {
+  document.getElementById('result-product-name').textContent = r.productName || 'Analysis result';
+  document.getElementById('result-zone-label').textContent = 'Zone: ' + r.zone;
+
+  const score = parseInt(r.score) || 0;
+  const ring = document.getElementById('score-ring');
+  ring.textContent = score;
+  if (score >= 70) {
+    ring.style.borderColor = '#639922'; ring.style.color = '#3B6D11';
+  } else if (score >= 45) {
+    ring.style.borderColor = '#EF9F27'; ring.style.color = '#854F0B';
+  } else {
+    ring.style.borderColor = '#E24B4A'; ring.style.color = '#A32D2D';
+  }
+
+  // Summary pills
+  const pillsEl = document.getElementById('summary-pills');
+  pillsEl.innerHTML = '';
+  const counts = [
+    { label: (r.good||[]).length + ' beneficial', cls: 'good' },
+    { label: (r.neutral||[]).length + ' neutral',  cls: 'neutral' },
+    { label: (r.bad||[]).length + ' caution',      cls: 'bad' },
+  ];
+  counts.forEach(c => {
+    if (parseInt(c.label) > 0) {
+      const p = document.createElement('span');
+      p.className = 'pill ' + c.cls;
+      p.textContent = c.label;
+      pillsEl.appendChild(p);
+    }
+  });
+
+  renderIngredientList('list-good',    r.good,    'good');
+  renderIngredientList('list-neutral', r.neutral, 'neutral');
+  renderIngredientList('list-bad',     r.bad,     'bad');
+
+  document.getElementById('result-summary-box').textContent = r.summary || '';
+}
+
+function renderIngredientList(elId, items, cls) {
+  const ul = document.getElementById(elId);
+  ul.innerHTML = '';
+  (items || []).forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'ingredient-item ' + cls;
+    li.innerHTML = `<div class="ingredient-dot"></div>
+      <div>
+        <div class="ingredient-name">${esc(item.name)}</div>
+        <div class="ingredient-desc">${esc(item.desc)}</div>
+      </div>`;
+    ul.appendChild(li);
+  });
+  if (!items || items.length === 0) {
+    const li = document.createElement('li');
+    li.style.cssText = 'font-size:0.82rem;color:var(--muted);padding:0.25rem 0;';
+    li.textContent = 'None identified';
+    ul.appendChild(li);
+  }
+}
+
+function esc(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════════════════════════
+// SAVE / FAVOURITES
+// ══════════════════════════════════════════
+function saveResult() {
+  if (!currentUser) { openModal('login'); return; }
+  if (!lastResult) return;
+
+  const key = 'nlb_saved_' + currentUser.email;
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  saved.unshift({ ...lastResult, id: Date.now() });
+  localStorage.setItem(key, JSON.stringify(saved.slice(0, 50)));
+  document.getElementById('save-btn').textContent = '✓ Saved';
+  setTimeout(() => { document.getElementById('save-btn').textContent = 'Save to favourites'; }, 2000);
+}
+
+function renderDashboard() {
+  const container = document.getElementById('saved-list');
+  if (!currentUser) {
+    container.innerHTML = '<div class="empty-state"><p>Sign in to see your saved products.</p><button class="btn-primary" onclick="openModal(\'login\')" style="margin-top:1rem;">Sign in</button></div>';
+    return;
+  }
+  const key = 'nlb_saved_' + currentUser.email;
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  if (saved.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No saved products yet. Analyse something and hit "Save to favourites".</p></div>';
+    return;
+  }
+  container.innerHTML = '<div class="saved-grid">' + saved.map(item => `
+    <div class="saved-card" onclick="viewSaved('${item.id}')">
+      <div>
+        <div class="name">${esc(item.productName)}</div>
+        <div class="meta">${item.zone} · Score: ${item.score} · ${new Date(item.timestamp).toLocaleDateString()}</div>
+      </div>
+      <button class="remove" title="Remove" onclick="removeSaved(event,'${item.id}')">&times;</button>
+    </div>`).join('') + '</div>';
+}
+
+function viewSaved(id) {
+  if (!currentUser) return;
+  const key = 'nlb_saved_' + currentUser.email;
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  const item = saved.find(s => String(s.id) === String(id));
+  if (!item) return;
+  lastResult = item;
+  renderResults(item);
+  showPage('results');
+}
+
+function removeSaved(e, id) {
+  e.stopPropagation();
+  if (!currentUser) return;
+  const key = 'nlb_saved_' + currentUser.email;
+  let saved = JSON.parse(localStorage.getItem(key) || '[]');
+  saved = saved.filter(s => String(s.id) !== String(id));
+  localStorage.setItem(key, JSON.stringify(saved));
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════
+// AUTH (localStorage mock)
+// ══════════════════════════════════════════
+function openModal(mode) {
+  authMode = mode;
+  document.getElementById('auth-modal').classList.add('open');
+  updateModalUI();
+}
+function closeModal() { document.getElementById('auth-modal').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target.id === 'auth-modal') closeModal(); }
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  updateModalUI();
+}
+
+function updateModalUI() {
+  const isSignup = authMode === 'signup';
+  document.getElementById('modal-title').textContent   = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('modal-sub').textContent     = isSignup ? 'Start saving your analyses' : 'Welcome back';
+  document.getElementById('signup-name-row').style.display = isSignup ? '' : 'none';
+  document.getElementById('modal-toggle-text').textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
+  document.querySelector('.modal-toggle button').textContent = isSignup ? 'Sign in' : 'Sign up';
+  hideError('auth-error');
+}
+
+function submitAuth() {
+  hideError('auth-error');
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-password').value;
+  const name  = document.getElementById('auth-name').value.trim();
+
+  if (!email || !pass) { showError('auth-error','Please fill in all fields.'); return; }
+  if (pass.length < 6) { showError('auth-error','Password must be at least 6 characters.'); return; }
+
+  const usersKey = 'nlb_users';
+  const users = JSON.parse(localStorage.getItem(usersKey) || '{}');
+
+  if (authMode === 'signup') {
+    if (users[email]) { showError('auth-error','An account with this email already exists.'); return; }
+    users[email] = { email, pass, name: name || email.split('@')[0] };
+    localStorage.setItem(usersKey, JSON.stringify(users));
+    currentUser = users[email];
+  } else {
+    if (!users[email] || users[email].pass !== pass) {
+      showError('auth-error','Incorrect email or password.'); return;
+    }
+    currentUser = users[email];
+  }
+
+  localStorage.setItem('nlb_user', JSON.stringify(currentUser));
+  updateNavForUser();
+  closeModal();
+}
+
+function updateNavForUser() {
+  const nav = document.getElementById('nav-actions');
+  if (currentUser) {
+    nav.innerHTML = `
+      <button class="btn-ghost" onclick="showPage('dashboard')">My products</button>
+      <button class="btn-ghost" onclick="logout()">${esc(currentUser.name || currentUser.email)} · Sign out</button>
+    `;
+  } else {
+    nav.innerHTML = `
+      <button class="btn-ghost" onclick="openModal('login')">Sign in</button>
+      <button class="btn-primary" onclick="openModal('signup')">Sign up</button>
+    `;
+  }
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('nlb_user');
+  updateNavForUser();
+  showPage('home');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = ''; }
+}
+function hideError(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+</script>
+</body>
+</html>
